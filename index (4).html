@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pallet optimiser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eceff2;--card:#fff;--ink:#14212b;--mute:#5b6b78;--line:#cfd8df;--acc:#0b7a75;--accsoft:#c9ece9;--wood:#cdb084;--woodline:#8a6d3b;--box:#7fc8c2;--boxline:#0b5f5a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f171d;--card:#17222a;--ink:#e6edf2;--mute:#8fa1ae;--line:#2c3b46;--acc:#4fc7bf;--accsoft:#123f3c;--wood:#5a4a30;--woodline:#a88a55;--box:#2f7f79;--boxline:#8fe0d9}}
+:root[data-theme="dark"]{--bg:#0f171d;--card:#17222a;--ink:#e6edf2;--mute:#8fa1ae;--line:#2c3b46;--acc:#4fc7bf;--accsoft:#123f3c;--wood:#5a4a30;--woodline:#a88a55;--box:#2f7f79;--boxline:#8fe0d9}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 'Archivo',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:clamp(28px,5vw,44px);font-weight:800;letter-spacing:-.02em;margin:8px 0 4px}
+.sub{color:var(--mute);margin:0 0 20px;max-width:60ch}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px 14px;align-items:end}
+.grid>div{display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
+.grid label{display:flex;align-items:flex-end;min-height:2.7em;line-height:1.25}
+.grid input{height:42px}
+label{display:block;font-size:13px;color:var(--mute);margin-bottom:4px}
+input[type=number]{width:100%;font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink);margin:0}
+.row{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;align-items:center}
+button{font:600 16px 'Archivo',system-ui,sans-serif;background:var(--acc);color:#fff;border:0;border-radius:6px;padding:11px 22px;cursor:pointer}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button{color:#06201e}}
+.res{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:16px;margin-top:20px}
+.res h2{margin:0 0 2px;font-size:20px}
+.res .best{display:inline-block;background:var(--accsoft);color:var(--acc);font-weight:600;font-size:13px;padding:2px 8px;border-radius:4px;margin-left:6px}
+.big{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 16px;margin:12px 0;font-size:14px}
+.stats span{color:var(--mute)}
+svg{width:100%;height:auto;display:block;border-radius:6px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;margin-top:10px}
+th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--mute);font-weight:600}
+.note{color:var(--mute);font-size:13px;margin-top:20px;max-width:75ch}
+.err{color:#b3261e;margin-top:12px}
+</style>
+</head>
+<body>
+<main>
+<h1>Pallet optimiser</h1>
+<p class="sub">Enter the carton size. The app suggests the best shipper to pack the cartons into, and how the shippers stack on a UK (1200×1000) and a Euro (1000×800) pallet.</p>
+
+<div class="panel">
+ <div class="grid">
+  <div><label for="L">Carton length (mm)</label><input id="L" type="number" value="120" min="10"></div>
+  <div><label for="W">Carton width (mm)</label><input id="W" type="number" value="70" min="10"></div>
+  <div><label for="H">Carton height (mm)</label><input id="H" type="number" value="45" min="10"></div>
+  <div><label for="kg">Carton weight (kg)</label><input id="kg" type="number" value="0.2" min="0" step="0.1"></div>
+ </div>
+ <div class="grid" style="margin-top:14px">
+  <div><label for="t">Shipper allowance per side (mm)</label><input id="t" type="number" value="5" min="0"></div>
+  <div><label for="mx">Max shipper side (mm)</label><input id="mx" type="number" value="600" min="50"></div>
+  <div><label for="mkg">Max shipper weight (kg)</label><input id="mkg" type="number" value="15" min="0" step="0.5"></div>
+  <div><label for="minN">Min cartons per shipper</label><input id="minN" type="number" value="1" min="1"></div>
+  <div><label for="maxN">Max cartons per shipper</label><input id="maxN" type="number" value="200" min="1"></div>
+  <div><label for="gap">Edge clearance (mm)</label><input id="gap" type="number" value="5" min="0"></div>
+  <div><label for="max">Max pallet height (mm)</label><input id="max" type="number" value="1200" min="100"></div>
+  <div><label for="phUK">UK pallet height (mm)</label><input id="phUK" type="number" value="150" min="0"></div>
+  <div><label for="phEU">Euro pallet height (mm)</label><input id="phEU" type="number" value="144" min="0"></div>
+ </div>
+ <div class="row">
+  <label class="chk"><input id="up" type="checkbox"> Keep cartons this way up in the shipper</label>
+  <label class="chk"><input id="inc" type="checkbox" checked> Max height includes the pallet</label>
+  <button id="go" type="button">Find best layout</button>
+ </div>
+ <div id="err" class="err" role="alert"></div>
+</div>
+
+<div id="out" class="res"></div>
+<p class="note">The shipper is a simple grid of cartons (no dividers or void fill) with the allowance added on every side. Pallet layouts use a guillotine packing search, which matches the best known pattern for most sizes. Very irregular sizes can occasionally have a pinwheel pattern that squeezes in one more box per layer. Pallet footprints: UK 1200×1000 mm, Euro 1000×800 mm. Cartons stay inside the edge clearance on all four sides.</p>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+
+function points(a,b,D){const s=new Set();for(let n=0;n*a<=D;n++)for(let m=0;n*a+m*b<=D;m++)s.add(n*a+m*b);return [...s].sort((x,y)=>x-y);}
+
+function pack(W,H,a,b){
+  const P=points(a,b,Math.max(W,H)),mn=Math.min(a,b),memo=new Map();
+  const norm=d=>{let lo=0,hi=P.length-1;while(lo<hi){const m=(lo+hi+1)>>1;if(P[m]<=d)lo=m;else hi=m-1}return P[lo]};
+  function solve(w,h){
+    w=norm(w);h=norm(h);
+    if(w<mn||h<mn)return {n:0};
+    const k=w*4096+h;if(memo.has(k))return memo.get(k);
+    let best={n:0};
+    for(const [pw,ph] of [[a,b],[b,a]]){const nx=Math.floor(w/pw),ny=Math.floor(h/ph);if(nx*ny>best.n)best={n:nx*ny,t:'g',pw,ph,nx,ny}}
+    for(const x of P){if(!x)continue;if(x>w/2)break;const r=solve(x,h).n+solve(w-x,h).n;if(r>best.n)best={n:r,t:'v',c:x}}
+    for(const y of P){if(!y)continue;if(y>h/2)break;const r=solve(w,y).n+solve(w,h-y).n;if(r>best.n)best={n:r,t:'h',c:y}}
+    memo.set(k,best);return best;
+  }
+  function build(w,h,ox,oy,out){
+    const nd=solve(w,h);w=norm(w);h=norm(h);
+    if(!nd.n)return;
+    if(nd.t==='g'){for(let i=0;i<nd.nx;i++)for(let j=0;j<nd.ny;j++)out.push({x:ox+i*nd.pw,y:oy+j*nd.ph,w:nd.pw,h:nd.ph})}
+    else if(nd.t==='v'){build(nd.c,h,ox,oy,out);build(w-nd.c,h,ox+nd.c,oy,out)}
+    else{build(w,nd.c,ox,oy,out);build(w,h-nd.c,ox,oy+nd.c,out)}
+  }
+  const rects=[];build(W,H,0,0,rects);
+  return {n:rects.length,rects};
+}
+
+function candidates(L,W,H,o){
+  const perms=o.up?[[L,W,H],[W,L,H]]:[[L,W,H],[W,L,H],[L,H,W],[H,L,W],[W,H,L],[H,W,L]];
+  const seen=new Set(),res=[];
+  for(const [dx,dy,dz] of perms)
+    for(let nx=1;nx*dx+2*o.t<=o.mx;nx++)for(let ny=1;ny*dy+2*o.t<=o.mx;ny++)for(let nz=1;nz*dz+2*o.t<=o.mx;nz++){
+      const n=nx*ny*nz;if(n<o.minN||n>o.maxN)continue;if(o.kg>0&&n*o.kg>o.mkg)continue;
+      const a=nx*dx+2*o.t,b=ny*dy+2*o.t,c=nz*dz+2*o.t,key=[Math.max(a,b),Math.min(a,b),c,n].join();
+      if(seen.has(key))continue;seen.add(key);res.push({a,b,c,n,nx,ny,nz});
+    }
+  return res;
+}
+function run(){
+  $('err').textContent='';
+  const v=id=>parseFloat($(id).value);
+  const L=v('L'),W=v('W'),H=v('H'),gap=v('gap')||0,max=v('max'),kg=v('kg')||0;
+  if(!(L>=10&&W>=10&&H>=10)){$('err').textContent='Enter carton length, width and height of at least 10 mm.';return}
+  const o={up:$('up').checked,t:v('t')||0,mx:v('mx'),mkg:v('mkg')||0,kg,minN:v('minN')||1,maxN:v('maxN')||1e9};
+  const cands=candidates(L,W,H,o);
+  const pallets=[{name:'UK pallet',sub:'1200 × 1000 mm',L:1200,W:1000,ph:v('phUK')||0},
+                 {name:'Euro pallet',sub:'1000 × 800 mm',L:1000,W:800,ph:v('phEU')||0}];
+  const out=$('out');out.innerHTML='';
+  if(!cands.length){$('err').textContent='No shipper fits those limits. Raise the max shipper side or weight, or lower the minimum cartons.';return}
+  const results=pallets.map(p=>{
+    const aw=p.L-2*gap,ah=p.W-2*gap,room=max-($('inc').checked?p.ph:0);
+    const list=cands.map(c=>({...c,layers:Math.floor(room/c.c),ub:0})).filter(c=>c.layers>0&&c.a<=Math.max(aw,ah)&&c.b<=Math.max(aw,ah));
+    list.forEach(c=>c.ub=c.n*c.layers*Math.floor(aw*ah/(c.a*c.b)));
+    list.sort((x,y)=>y.ub-x.ub);
+    const top=[];
+    for(const c of list){
+      if(top.length>=6&&c.ub<top[5].total)break;
+      const pk=pack(aw,ah,c.a,c.b);
+      if(!pk.n)continue;
+      top.push({...c,pk,per:pk.n,ships:pk.n*c.layers,total:pk.n*c.layers*c.n,height:p.ph+c.layers*c.c});
+      top.sort((x,y)=>y.total-x.total||x.ships-y.ships);
+      if(top.length>6)top.length=6;
+    }
+    return {p,top,aw,ah,room};
+  });
+  const overall=Math.max(...results.map(r=>r.top[0]?r.top[0].total:0));
+  for(const {p,top,aw,ah,room} of results){
+    const o2=top[0],card=document.createElement('section');card.className='panel';
+    if(!o2){card.innerHTML=`<h2>${p.name}</h2><p>No shipper fits in the ${aw}×${ah} mm usable area with ${room} mm of height.</p>`;out.appendChild(card);continue}
+    const fill=(o2.per*o2.a*o2.b/(aw*ah)*100).toFixed(1);
+    let svg=`<svg viewBox="-20 -20 ${p.L+40} ${p.W+40}" role="img" aria-label="Top view of ${o2.per} shippers per layer"><rect x="0" y="0" width="${p.L}" height="${p.W}" fill="var(--wood)" stroke="var(--woodline)" stroke-width="3"/><rect x="${gap}" y="${gap}" width="${aw}" height="${ah}" fill="none" stroke="var(--woodline)" stroke-dasharray="8 6" stroke-width="2"/>`;
+    for(const r of o2.pk.rects){
+      const rot=r.w!==o2.a&&r.w===o2.b,cols=rot?o2.ny:o2.nx,rows=rot?o2.nx:o2.ny,x=gap+r.x+1,y=gap+r.y+1,w=r.w-2,h=r.h-2;
+      svg+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="var(--box)" stroke="var(--boxline)" stroke-width="3"/>`;
+      for(let i=1;i<cols;i++)svg+=`<line x1="${x+w*i/cols}" y1="${y}" x2="${x+w*i/cols}" y2="${y+h}" stroke="var(--boxline)" stroke-width="1" opacity=".6"/>`;
+      for(let j=1;j<rows;j++)svg+=`<line x1="${x}" y1="${y+h*j/rows}" x2="${x+w}" y2="${y+h*j/rows}" stroke="var(--boxline)" stroke-width="1" opacity=".6"/>`;
+    }
+    svg+='</svg>';
+    const rows=top.map(x=>`<tr><td>${x.a}×${x.b}×${x.c}</td><td>${x.nx}×${x.ny}×${x.nz}=${x.n}</td><td>${x.ships}</td><td><b>${x.total}</b></td><td>${x.height}</td></tr>`).join('');
+    card.innerHTML=`<h2>${p.name}${o2.total===overall?'<span class="best">Most cartons</span>':''}</h2><div style="color:var(--mute);font-size:14px">${p.sub}</div>
+    <div style="margin:12px 0"><span class="big">${o2.total}</span> cartons per pallet</div>
+    <div class="stats"><div><span>Suggested shipper (mm)</span><br><b>${o2.a} × ${o2.b} × ${o2.c}</b></div><div><span>Cartons in shipper</span><br>${o2.nx} × ${o2.ny} × ${o2.nz} = ${o2.n}</div>
+    <div><span>Shippers per layer</span><br>${o2.per}</div><div><span>Layers</span><br>${o2.layers}</div>
+    <div><span>Shippers per pallet</span><br>${o2.ships}</div><div><span>Loaded height</span><br>${o2.height} mm</div>
+    <div><span>Usable footprint filled</span><br>${fill}%</div>
+    ${kg>0?`<div><span>Shipper contents</span><br>${(o2.n*kg).toFixed(1)} kg (pallet ${(o2.total*kg).toFixed(0)} kg)</div>`:''}</div>
+    ${svg}
+    <div class="scroll"><table><tr><th>Shipper (mm)</th><th>Cartons</th><th>Shippers</th><th>Per pallet</th><th>Loaded ht</th></tr>${rows}</table></div>`;
+    out.appendChild(card);
+  }
+}
+$('go').addEventListener('click',run);
+document.addEventListener('keydown',e=>{if(e.key==='Enter')run()});
+run();
+</script>
+</body>
+</html>
